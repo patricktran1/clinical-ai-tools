@@ -22,7 +22,8 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --experimental-strip-types --test test/*.test.ts",
     "test:coverage": "npm run build && node --experimental-strip-types --experimental-test-coverage --test test/*.test.ts",
-    "validate": "npm run check && npm test"
+    "test:package": "npm run build && node scripts/smoke-package.mjs",
+    "validate": "npm run check && npm test && npm run test:package"
   },
   "engines": {
     "node": ">=22"
