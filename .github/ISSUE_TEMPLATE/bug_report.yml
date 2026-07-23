@@ -1,0 +1,45 @@
+name: Guardrail defect
+about: Report incorrect deterministic validation behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include patient data, credentials, or private source text. Report security-sensitive bypasses privately using SECURITY.md.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the observed deterministic behavior.
+      placeholder: A fabricated quote was accepted when...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen?
+      description: Describe the expected fail-closed behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide a small synthetic example or test case.
+      render: typescript
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Guardrail area
+      options:
+        - Journal or source matching
+        - Exact quote grounding
+        - Claim mapping
+        - Certainty-language screening
+        - Source-boundary disclosure
+        - Build, tests, or packaging
+    validations:
+      required: true
