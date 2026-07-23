@@ -20,9 +20,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test test/*.test.ts",
-    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test test/*.test.ts",
-    "validate": "npm run check && npm test && npm run build"
+    "test": "npm run build && node --experimental-strip-types --test test/*.test.ts",
+    "test:coverage": "npm run build && node --experimental-strip-types --experimental-test-coverage --test test/*.test.ts",
+    "validate": "npm run check && npm test"
   },
   "engines": {
     "node": ">=22"

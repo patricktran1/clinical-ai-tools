@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createCuratedJournalMatcher,
   normalizeJournalName,
-} from "../src/index.ts";
+} from "../dist/index.js";
 
 const matchJournal = createCuratedJournalMatcher([
   {

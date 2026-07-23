@@ -4,7 +4,7 @@ import {
   claimsMatch,
   normalizeWhitespace,
   quoteAppearsInSource,
-} from "../src/index.ts";
+} from "../dist/index.js";
 
 test("normalizes Unicode-compatible whitespace without changing meaning", () => {
   assert.equal(normalizeWhitespace("  one\n\t two  "), "one two");
