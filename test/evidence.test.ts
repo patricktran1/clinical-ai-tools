@@ -4,7 +4,7 @@ import {
   findUnsafeCertainty,
   validateEvidenceCard,
   type EvidenceCard,
-} from "../src/index.ts";
+} from "../dist/index.js";
 
 const quote =
   "At week 16, 62% of participants achieved the primary endpoint compared with 31% receiving placebo.";
