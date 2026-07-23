@@ -98,7 +98,10 @@ export const CLINICAL_EDUCATION_CERTAINTY_POLICY = createCertaintyPolicy(
   [
     ...DEFAULT_RULES,
     { label: "safe for everyone", pattern: /\bsafe\s+for\s+everyone\b/i },
-    { label: "must use", pattern: /\bmust\s+(?:use|prescribe|recommend)\b/i },
+    {
+      label: "must use",
+      pattern: /\bmust\s+(?:(?:be\s+)?(?:used|prescribed|recommended)|use|prescribe|recommend)\b/i,
+    },
     { label: "now standard of care", pattern: /\bnow\s+(?:the\s+)?standard\s+of\s+care\b/i },
   ],
 );
