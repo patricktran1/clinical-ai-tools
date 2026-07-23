@@ -97,9 +97,11 @@ test("isolates tenant limits, strips credentials, and propagates trace context",
     body: JSON.stringify({ claim: "bounded" }),
   }));
   const blockedTenantA = await gateway(new Request("https://gateway.example/cards", {
+    method: "POST",
     headers: { "x-api-key": "key-a" },
   }));
   const firstTenantB = await gateway(new Request("https://gateway.example/cards", {
+    method: "POST",
     headers: { "x-api-key": "key-b" },
   }));
 
