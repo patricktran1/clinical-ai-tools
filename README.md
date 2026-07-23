@@ -11,7 +11,7 @@ Clinical Evidence Guardrails is a small, dependency-free library for teams build
 - explicitly curated source matching
 - exact source-quote verification
 - claim-to-evidence mapping
-- unsupported-certainty detection
+- configurable unsupported-certainty policies
 - source-boundary disclosure checks
 
 The library does not determine clinical truth, recommend treatment, or authorize publication. It helps applications fail closed when generated evidence artifacts are ungrounded or overstated.
@@ -34,6 +34,7 @@ The package is currently source-ready and prepared for its first npm publication
 
 ```ts
 import {
+  LITERATURE_REVIEW_CERTAINTY_POLICY,
   createCuratedJournalMatcher,
   validateEvidenceCard,
 } from "@patricktran1/clinical-evidence-guardrails";
@@ -68,10 +69,12 @@ const result = validateEvidenceCard(
     ],
   },
   `RESULTS: ${sourceQuote}`,
+  { certaintyPolicy: LITERATURE_REVIEW_CERTAINTY_POLICY },
 );
 
 if (!result.passed) {
   console.error(result.issues);
+  console.error(result.unsafeMatches);
 }
 ```
 
@@ -85,13 +88,56 @@ Builds a deterministic matcher from canonical journal names and explicit aliases
 
 Confirms that a non-empty source quote appears in the supplied source after Unicode and whitespace normalization. It does not use semantic similarity.
 
-### `findUnsafeCertainty(texts)`
+### `createCertaintyPolicy(name, rules)`
 
-Flags phrases such as `proves`, `guarantees`, `cures`, `for all patients`, `practice-changing`, and universal language. This is a deterministic screening layer, not a complete clinical-language policy.
+Builds a named policy from explicit regex rules:
+
+```ts
+const policy = createCertaintyPolicy("patient-education", [
+  { label: "guaranteed outcome", pattern: /\bguaranteed outcome\b/i },
+  { label: "no side effects", pattern: /\bno side effects\b/i },
+]);
+```
+
+Policy names and rule labels must be non-empty. Duplicate labels are rejected case-insensitively. Stateful `g` and `y` regex flags are removed when the policy is created so repeated validation calls produce the same result.
+
+An empty policy is allowed for record-only workflows, but it disables certainty screening. Applications should make that choice explicit and document the compensating review process.
+
+### Built-in certainty policies
+
+- `DEFAULT_CERTAINTY_POLICY` preserves the original conservative screening behavior.
+- `LITERATURE_REVIEW_CERTAINTY_POLICY` additionally flags causal, definitive, and conclusive overclaims.
+- `CLINICAL_EDUCATION_CERTAINTY_POLICY` additionally flags universal safety and directive treatment language.
+
+The presets are intentionally small and inspectable. They are examples of deterministic screening, not comprehensive language-safety standards.
+
+### `findUnsafeCertainty(texts, policy?)`
+
+Returns every matching rule in deterministic policy order. Each result includes:
+
+```ts
+{
+  phrase: string; // backward-compatible alias for rule
+  rule: string;
+  policy: string;
+  text: string;
+}
+```
+
+Overlapping rules are all returned rather than silently choosing one. The function does not infer meaning or use a model.
 
 ### `validateEvidenceCard(card, source, options?)`
 
-Returns:
+Supported options:
+
+```ts
+{
+  sourceBoundaryPattern?: RegExp;
+  certaintyPolicy?: CertaintyPolicy;
+}
+```
+
+The result contains:
 
 ```ts
 {
@@ -110,8 +156,10 @@ A card passes only when:
 1. at least one evidence mapping exists
 2. every quoted excerpt appears in the source
 3. the correct answer is represented by a grounded claim
-4. asserted language avoids configured high-certainty patterns
+4. asserted language avoids the selected certainty policy
 5. limitations explicitly disclose the processed source boundary
+
+Passing means only that these deterministic checks succeeded. It does not establish clinical sufficiency, factual completeness, or authorization to publish.
 
 ## Design principles
 
@@ -119,6 +167,7 @@ A card passes only when:
 - **Keep models bounded.** Deterministic code retains veto authority.
 - **Make source scope visible.** Abstract-only processing must be disclosed.
 - **Prefer explicit allowlists.** Normalization never silently broadens eligibility.
+- **Make policy decisions auditable.** Every certainty rejection records its policy, rule, and source text.
 - **Separate validation from authorization.** Passing guardrails does not equal physician approval or publication.
 
 ## Development
@@ -140,7 +189,7 @@ npm run build
 ```text
 src/journal.ts     curated-source normalization and matching
 src/text.ts        exact-quote and claim comparison helpers
-src/language.ts    unsupported-certainty screening
+src/language.ts    certainty policies and unsupported-language screening
 src/evidence.ts    evidence-card validation
 src/index.ts       public package exports
 test/              deterministic regression suites
@@ -161,6 +210,8 @@ High-value contribution areas include:
 ## Safety and scope
 
 This is research and developer infrastructure. It is not a medical device, diagnostic system, clinical recommendation engine, or substitute for clinician judgment. Do not use it to make autonomous patient-care or publication decisions.
+
+Regex policies are incomplete by design. A phrase that is not flagged may still be unsupported, misleading, or unsafe. Human review and domain validation remain required.
 
 See [`SECURITY.md`](SECURITY.md) for responsible disclosure.
 

@@ -1,4 +1,8 @@
-import { findUnsafeCertainty, type UnsafeCertaintyMatch } from "./language.js";
+import {
+  findUnsafeCertainty,
+  type CertaintyPolicy,
+  type UnsafeCertaintyMatch,
+} from "./language.js";
 import { claimsMatch, quoteAppearsInSource } from "./text.js";
 
 export interface EvidenceMapEntry {
@@ -38,6 +42,7 @@ export interface EvidenceGuardrailResult {
 
 export interface ValidateEvidenceCardOptions {
   sourceBoundaryPattern?: RegExp;
+  certaintyPolicy?: CertaintyPolicy;
 }
 
 /**
@@ -70,9 +75,12 @@ export function validateEvidenceCard(
     ...card.evidenceMap.map((entry) => entry.claim),
     ...(card.assertedText ?? []),
   ];
-  const unsafeMatches = findUnsafeCertainty(assertedText);
+  const unsafeMatches = findUnsafeCertainty(assertedText, options.certaintyPolicy);
   const languageSafe = unsafeMatches.length === 0;
+
+  boundaryPattern.lastIndex = 0;
   const sourceBoundaryExplicit = boundaryPattern.test(card.limitations);
+  boundaryPattern.lastIndex = 0;
 
   if (!hasEvidenceMap) {
     issues.push({
@@ -96,8 +104,8 @@ export function validateEvidenceCard(
   if (!languageSafe) {
     issues.push({
       code: "unsafe-certainty",
-      message: `Unsupported certainty detected: ${unsafeMatches
-        .map((match) => match.phrase)
+      message: `Unsupported certainty detected by ${unsafeMatches[0]?.policy ?? "configured"} policy: ${unsafeMatches
+        .map((match) => match.rule)
         .join(", ")}.`,
     });
   }

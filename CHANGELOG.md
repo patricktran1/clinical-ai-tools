@@ -8,8 +8,21 @@ The project follows semantic versioning.
 
 ### Added
 
+- named, validated certainty policies with deterministic rule ordering
+- literature-review and clinical-education policy presets
+- policy and rule metadata on every certainty rejection
+- caller-selectable certainty policies in evidence-card validation
+- regression coverage for overlapping rules, empty policies, duplicate labels, and stateful regexes
 - contributor-ready issue and pull request templates
 - CodeQL and dependency maintenance automation
+
+### Changed
+
+- custom source-boundary regexes are reset before and after validation so global and sticky patterns remain repeatable
+
+### Safety boundary
+
+- certainty policies are intentionally incomplete deterministic screens and do not replace clinical, editorial, or domain review
 
 ## [0.1.0] - 2026-07-23
 
