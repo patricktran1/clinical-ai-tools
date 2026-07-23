@@ -12,7 +12,13 @@ export {
 } from "./text.js";
 
 export {
+  CLINICAL_EDUCATION_CERTAINTY_POLICY,
+  DEFAULT_CERTAINTY_POLICY,
+  LITERATURE_REVIEW_CERTAINTY_POLICY,
+  createCertaintyPolicy,
   findUnsafeCertainty,
+  type CertaintyPolicy,
+  type CertaintyRule,
   type UnsafeCertaintyMatch,
 } from "./language.js";
 
