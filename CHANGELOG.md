@@ -20,6 +20,8 @@ The project follows semantic versioning.
 - OpenTelemetry-compatible tracer and metrics adapter interfaces
 - deterministic gateway errors, request-size limits, upstream timeouts, and rate-limit metadata
 - adversarial tests for tenant isolation, header spoofing, dependency outages, Redis responses, trace context, timeouts, and telemetry closure
+- clean packed-package consumer smoke test using the public package name
+- copyable evidence-validation and Fetch gateway integration examples
 - contributor-ready issue and pull request templates
 - CodeQL and dependency maintenance automation
 
@@ -27,11 +29,13 @@ The project follows semantic versioning.
 
 - custom source-boundary regexes are reset before and after validation so global and sticky patterns remain repeatable
 - package positioning now includes bounded evidence-service infrastructure in addition to evidence-artifact validation
+- contributor validation now checks the installable tarball as well as repository tests
 
 ### Safety boundary
 
 - certainty policies are intentionally incomplete deterministic screens and do not replace clinical, editorial, or domain review
 - the gateway does not provide secret management, user authorization, PHI redaction, network isolation, or autonomous clinical validation
+- examples and consumer fixtures use synthetic content and do not establish clinical sufficiency
 
 ## [0.1.0] - 2026-07-23
 
