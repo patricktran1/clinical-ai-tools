@@ -1,0 +1,13 @@
+# Default ownership
+* @patricktran1
+
+# Safety-critical deterministic logic
+/src/evidence.ts @patricktran1
+/src/journal.ts @patricktran1
+/src/language.ts @patricktran1
+/src/text.ts @patricktran1
+/test/ @patricktran1
+
+# Supply chain and automation
+/package.json @patricktran1
+/.github/workflows/ @patricktran1
