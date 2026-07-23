@@ -1,0 +1,41 @@
+name: Guardrail enhancement
+about: Propose a focused validation or developer-experience improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+      description: Describe the concrete evidence-workflow failure or developer friction.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain the deterministic behavior and its inputs and outputs.
+    validations:
+      required: true
+  - type: textarea
+    id: failures
+    attributes:
+      label: Failure modes to test
+      description: List negative controls and edge cases that should be included.
+      placeholder: |
+        - empty input
+        - partially matching quotation
+        - conflicting alias
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Core deterministic logic
+        - Test coverage
+        - Documentation or examples
+        - Package or CI maintenance
+    validations:
+      required: true
