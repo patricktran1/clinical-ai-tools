@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createCertaintyPolicy,
   findUnsafeCertainty,
   validateEvidenceCard,
   type EvidenceCard,
@@ -71,6 +72,38 @@ test("rejects unsupported certainty", () => {
   assert.ok(result.issues.some((issue) => issue.code === "unsafe-certainty"));
 });
 
+test("uses a caller-supplied certainty policy", () => {
+  const card = validCard();
+  card.assertedText = ["This should be considered first-line education."];
+  const policy = createCertaintyPolicy("local-education", [
+    { label: "first-line", pattern: /\bfirst[- ]line\b/i },
+  ]);
+
+  const result = validateEvidenceCard(card, source, { certaintyPolicy: policy });
+
+  assert.equal(result.languageSafe, false);
+  assert.deepEqual(result.unsafeMatches, [
+    {
+      phrase: "first-line",
+      rule: "first-line",
+      policy: "local-education",
+      text: "This should be considered first-line education.",
+    },
+  ]);
+  assert.match(result.issues[0]?.message ?? "", /local-education policy/i);
+});
+
+test("supports an empty policy for record-only workflows", () => {
+  const card = validCard();
+  card.assertedText = ["This result proves the treatment always works."];
+  const policy = createCertaintyPolicy("record-only", []);
+
+  const result = validateEvidenceCard(card, source, { certaintyPolicy: policy });
+
+  assert.equal(result.languageSafe, true);
+  assert.equal(result.passed, true);
+});
+
 test("rejects a missing source-boundary disclosure", () => {
   const card = validCard();
   card.limitations = "Additional review is recommended.";
@@ -78,6 +111,13 @@ test("rejects a missing source-boundary disclosure", () => {
   const result = validateEvidenceCard(card, source);
   assert.equal(result.sourceBoundaryExplicit, false);
   assert.ok(result.issues.some((issue) => issue.code === "source-boundary-missing"));
+});
+
+test("custom global boundary patterns remain deterministic across calls", () => {
+  const options = { sourceBoundaryPattern: /\babstract\b/gi };
+
+  assert.equal(validateEvidenceCard(validCard(), source, options).passed, true);
+  assert.equal(validateEvidenceCard(validCard(), source, options).passed, true);
 });
 
 test("detects high-certainty language independently", () => {
