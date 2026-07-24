@@ -26,10 +26,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: package.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Clean dependency install
+        run: npm ci --no-audit --no-fund
 
       - name: Capture high-severity dependency audit
         id: audit
@@ -60,8 +60,11 @@ jobs:
       - name: Regression tests
         run: npm test
 
-      - name: Coverage baseline
-        run: npm run test:coverage | tee coverage.txt
+      - name: Enforced source coverage
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:coverage | tee coverage.txt
 
       - name: Package build
         run: npm run build

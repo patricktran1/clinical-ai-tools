@@ -1,0 +1,82 @@
+name: Dependency Review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: clinical-evidence-dependency-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Attempt GitHub dependency review
+        id: review
+        continue-on-error: true
+        uses: actions/dependency-review-action@3943c2c5beaaaf1806eb3758273c203dabcbf89c # v5.0.0
+        with:
+          fail-on-severity: moderate
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 60
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install reviewed dependency graph
+        run: npm ci --no-audit --no-fund
+
+      - name: Capture moderate-or-higher npm audit
+        id: audit
+        shell: bash
+        run: |
+          mkdir -p dependency-review
+          set +e
+          npm audit --audit-level=moderate --json > dependency-review/npm-audit.json
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Capture official review outputs
+        if: always()
+        env:
+          DEPENDENCY_CHANGES: ${{ steps.review.outputs.dependency-changes }}
+          VULNERABLE_CHANGES: ${{ steps.review.outputs.vulnerable-changes }}
+          INVALID_LICENSE_CHANGES: ${{ steps.review.outputs.invalid-license-changes }}
+          COMMENT_CONTENT: ${{ steps.review.outputs.comment-content }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+        shell: bash
+        run: |
+          printf '%s' "$DEPENDENCY_CHANGES" > dependency-review/dependency-changes.json
+          printf '%s' "$VULNERABLE_CHANGES" > dependency-review/vulnerable-changes.json
+          printf '%s' "$INVALID_LICENSE_CHANGES" > dependency-review/invalid-license-changes.json
+          printf '%s' "$COMMENT_CONTENT" > dependency-review/summary.md
+          printf '%s\n' "$REVIEW_OUTCOME" > dependency-review/outcome.txt
+
+      - name: Enforce deterministic dependency policy
+        run: node scripts/review-dependency-changes.mjs dependency-review/local-review.json
+
+      - name: Upload dependency review evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: clinical-evidence-dependency-review
+          path: dependency-review
+          if-no-files-found: error
+          retention-days: 14
