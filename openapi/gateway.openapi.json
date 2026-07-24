@@ -1,0 +1,221 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Clinical Evidence Gateway",
+    "version": "0.1.0",
+    "description": "Operational contract for the multi-tenant clinical evidence gateway. Successful proxy responses are defined by the configured upstream. Gateway-generated failures use the ErrorEnvelope schema."
+  },
+  "servers": [
+    { "url": "http://localhost:4000" }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "health",
+        "summary": "Process liveness",
+        "responses": {
+          "200": {
+            "description": "The process is alive.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readiness",
+        "summary": "Traffic readiness",
+        "responses": {
+          "200": {
+            "description": "The gateway is accepting traffic.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Ready" }
+              }
+            }
+          },
+          "503": {
+            "description": "The gateway is starting or draining.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Draining" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{path}": {
+      "parameters": [
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "Proxy path. The implementation also accepts nested paths.",
+          "schema": { "type": "string" }
+        }
+      ],
+      "get": {
+        "operationId": "proxyGet",
+        "security": [{ "ApiKey": [] }],
+        "responses": {
+          "200": { "description": "Upstream response." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "502": { "$ref": "#/components/responses/UpstreamFailure" },
+          "503": { "$ref": "#/components/responses/DependencyUnavailable" },
+          "504": { "$ref": "#/components/responses/UpstreamTimeout" }
+        }
+      },
+      "post": {
+        "operationId": "proxyPost",
+        "security": [{ "ApiKey": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": { "schema": {} },
+            "application/octet-stream": { "schema": { "type": "string", "contentEncoding": "base64" } }
+          }
+        },
+        "responses": {
+          "200": { "description": "Upstream response." },
+          "201": { "description": "Upstream resource created." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "502": { "$ref": "#/components/responses/UpstreamFailure" },
+          "503": { "$ref": "#/components/responses/DependencyUnavailable" },
+          "504": { "$ref": "#/components/responses/UpstreamTimeout" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Stable request correlation identifier.",
+        "schema": { "type": "string" }
+      },
+      "Traceparent": {
+        "description": "Validated W3C trace context.",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+        }
+      },
+      "RateLimitLimit": {
+        "schema": { "type": "integer", "minimum": 1 }
+      },
+      "RateLimitRemaining": {
+        "schema": { "type": "integer", "minimum": 0 }
+      },
+      "RateLimitReset": {
+        "schema": { "type": "integer", "minimum": 0 }
+      },
+      "RetryAfter": {
+        "schema": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": { "status": { "const": "ok" } }
+      },
+      "Ready": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": { "status": { "const": "ready" } }
+      },
+      "Draining": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status"],
+        "properties": { "status": { "const": "draining" } }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or unknown API key.",
+        "headers": {
+          "x-request-id": { "$ref": "#/components/headers/RequestId" },
+          "traceparent": { "$ref": "#/components/headers/Traceparent" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "PayloadTooLarge": {
+        "description": "Request body exceeds the configured maximum.",
+        "headers": {
+          "x-request-id": { "$ref": "#/components/headers/RequestId" },
+          "traceparent": { "$ref": "#/components/headers/Traceparent" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "RateLimited": {
+        "description": "Tenant and route token bucket is exhausted.",
+        "headers": {
+          "x-request-id": { "$ref": "#/components/headers/RequestId" },
+          "traceparent": { "$ref": "#/components/headers/Traceparent" },
+          "ratelimit-limit": { "$ref": "#/components/headers/RateLimitLimit" },
+          "ratelimit-remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+          "ratelimit-reset": { "$ref": "#/components/headers/RateLimitReset" },
+          "retry-after": { "$ref": "#/components/headers/RetryAfter" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "UpstreamFailure": {
+        "description": "Request read or upstream forwarding failed.",
+        "headers": {
+          "x-request-id": { "$ref": "#/components/headers/RequestId" },
+          "traceparent": { "$ref": "#/components/headers/Traceparent" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "DependencyUnavailable": {
+        "description": "Tenant resolution, rate limiting, or service readiness is unavailable.",
+        "headers": {
+          "x-request-id": { "$ref": "#/components/headers/RequestId" },
+          "traceparent": { "$ref": "#/components/headers/Traceparent" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      },
+      "UpstreamTimeout": {
+        "description": "The upstream did not respond before the configured deadline.",
+        "headers": {
+          "x-request-id": { "$ref": "#/components/headers/RequestId" },
+          "traceparent": { "$ref": "#/components/headers/Traceparent" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+      }
+    }
+  }
+}
