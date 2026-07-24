@@ -1,9 +1,28 @@
 {
   "name": "@patricktran1/clinical-evidence-guardrails",
   "version": "0.1.0",
-  "description": "Deterministic TypeScript guardrails for source-grounded clinical evidence workflows.",
+  "description": "Deterministic TypeScript guardrails and multi-tenant gateway infrastructure for source-grounded clinical evidence workflows.",
   "type": "module",
   "license": "MIT",
+  "author": "Patrick Tran",
+  "homepage": "https://github.com/patricktran1/clinical-ai-tools#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/patricktran1/clinical-ai-tools.git"
+  },
+  "bugs": {
+    "url": "https://github.com/patricktran1/clinical-ai-tools/issues"
+  },
+  "keywords": [
+    "clinical-ai",
+    "evidence",
+    "guardrails",
+    "multi-tenant",
+    "rate-limiting",
+    "opentelemetry",
+    "redis",
+    "typescript"
+  ],
   "files": [
     "dist",
     "README.md",
@@ -23,10 +42,18 @@
     "test": "npm run build && node --experimental-strip-types --test test/*.test.ts",
     "test:coverage": "npm run build && node --experimental-strip-types --experimental-test-coverage --test test/*.test.ts",
     "test:package": "npm run build && node scripts/smoke-package.mjs",
-    "validate": "npm run check && npm test && npm run test:package"
+    "test:load": "npm run build && node scripts/load-gateway.mjs",
+    "test:fault": "npm run build && node scripts/fault-gateway.mjs",
+    "test:operations": "npm run build && node scripts/load-gateway.mjs && node scripts/fault-gateway.mjs",
+    "validate": "npm run check && npm test && npm run test:package && npm run test:operations",
+    "prepublishOnly": "npm run validate"
   },
   "engines": {
     "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
     "typescript": "^5.8.3"
