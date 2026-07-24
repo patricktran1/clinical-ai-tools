@@ -22,6 +22,8 @@ jobs:
           persist-credentials: false
 
       - name: Review dependency changes
+        id: review
+        continue-on-error: true
         uses: actions/dependency-review-action@3943c2c5beaaaf1806eb3758273c203dabcbf89c # v5.0.0
         with:
           fail-on-severity: moderate
@@ -31,3 +33,33 @@ jobs:
           show-openssf-scorecard: true
           warn-on-openssf-scorecard-level: 5
           show-patched-versions: true
+
+      - name: Capture dependency review evidence
+        if: always()
+        env:
+          DEPENDENCY_CHANGES: ${{ steps.review.outputs.dependency-changes }}
+          VULNERABLE_CHANGES: ${{ steps.review.outputs.vulnerable-changes }}
+          INVALID_LICENSE_CHANGES: ${{ steps.review.outputs.invalid-license-changes }}
+          COMMENT_CONTENT: ${{ steps.review.outputs.comment-content }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+        shell: bash
+        run: |
+          mkdir -p dependency-review
+          printf '%s' "$DEPENDENCY_CHANGES" > dependency-review/dependency-changes.json
+          printf '%s' "$VULNERABLE_CHANGES" > dependency-review/vulnerable-changes.json
+          printf '%s' "$INVALID_LICENSE_CHANGES" > dependency-review/invalid-license-changes.json
+          printf '%s' "$COMMENT_CONTENT" > dependency-review/summary.md
+          printf '%s\n' "$REVIEW_OUTCOME" > dependency-review/outcome.txt
+
+      - name: Upload dependency review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinical-evidence-dependency-review
+          path: dependency-review
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce dependency review
+        if: steps.review.outcome != 'success'
+        run: exit 1
