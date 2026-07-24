@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/patricktran1/clinical-ai-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/patricktran1/clinical-ai-tools/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/patricktran1/clinical-ai-tools/actions/workflows/codeql.yml/badge.svg)](https://github.com/patricktran1/clinical-ai-tools/actions/workflows/codeql.yml)
+[![Dependency Review](https://github.com/patricktran1/clinical-ai-tools/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/patricktran1/clinical-ai-tools/actions/workflows/dependency-review.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/patricktran1/clinical-ai-tools/badge)](https://scorecard.dev/viewer/?uri=github.com/patricktran1/clinical-ai-tools)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Deterministic TypeScript guardrails and operational gateway infrastructure for source-grounded clinical evidence workflows.**
@@ -19,6 +21,9 @@ Clinical Evidence Guardrails is a dependency-free library for teams building evi
 - W3C trace propagation and OpenTelemetry-compatible observability
 - executable multi-tenant load and fail-closed fault harnesses
 - packed-package consumer validation and provenance-enabled releases
+- reproducible lockfile-based installs and enforceable source-coverage floors
+- pull-request dependency review with registry, integrity, license, and vulnerability policy
+- published OpenSSF Scorecard analysis with retained SARIF and code-scanning results
 
 The library does not determine clinical truth, recommend treatment, or authorize publication. It helps applications fail closed when generated evidence artifacts are ungrounded, overstated, or crossing an unprotected service boundary.
 
@@ -243,6 +248,21 @@ npm run test:operations
 
 CI retains the load report, fault report, dependency audit, and coverage output as reviewable artifacts. Performance numbers are diagnostics from the runner, not production SLO claims.
 
+## Quality and supply-chain policy
+
+Every pull request is evaluated against enforceable repository policy:
+
+- `npm ci` must reproduce the committed Node 22 dependency graph
+- source coverage must remain at or above 90% for lines, 90% for functions, and 85% for branches
+- the official GitHub dependency-review Action evaluates dependency changes when GitHub's snapshot API is available
+- a deterministic fallback compares the base and head lockfiles and rejects unapproved licenses, non-registry resolution, missing SHA-512 integrity, and moderate-or-higher audit findings
+- dependency-review, npm-audit, coverage, SBOM, load, fault, service, OpenAPI, and container evidence is retained as workflow artifacts
+- CodeQL runs on pull requests, default-branch pushes, and its recurring schedule
+- OpenSSF Scorecard runs on default-branch pushes and weekly, publishes authenticated results through OIDC, retains SARIF, and uploads findings to GitHub code scanning
+- Scorecard and dependency-review workflow Actions are pinned to exact upstream commits
+
+These checks establish a visible regression and supply-chain baseline. They do not prove complete correctness, eliminate dependency risk, or replace review of deployment-specific controls.
+
 ## Package and release integrity
 
 The package smoke test builds and packs the tarball, installs it in a clean temporary consumer project, imports through the public package name, and executes the installed `clinical-evidence-check` binary against a grounded fixture.
@@ -268,7 +288,7 @@ Tags matching `v*.*.*` trigger a workflow that verifies the tag against `package
 Requires Node.js 22 or later.
 
 ```bash
-npm install
+npm ci
 npm run check
 npm test
 npm run test:coverage
@@ -281,24 +301,26 @@ npm run validate
 ## Repository map
 
 ```text
-bin/clinical-evidence-check.mjs  file-based validation CLI
-src/journal.ts                   curated-source normalization and matching
-src/text.ts                      exact-quote and claim comparison helpers
-src/language.ts                  certainty policies and language screening
-src/evidence.ts                  evidence-card validation
-src/rate-limit.ts                process-local and atomic Redis token buckets
-src/trace.ts                     W3C trace context validation and propagation
-src/telemetry.ts                 dependency-free OpenTelemetry interfaces
-src/gateway.ts                   multi-tenant Fetch API gateway
-src/index.ts                     public package exports
-scripts/smoke-package.mjs        packed-package API and CLI validation
-scripts/load-gateway.mjs         multi-tenant isolation load harness
-scripts/fault-gateway.mjs        deterministic fail-closed fault matrix
-docs/GATEWAY.md                  architecture and threat boundaries
-docs/OPERATIONS.md               operations, artifacts, and incident sequence
-docs/CONTRIBUTOR_SPRINT.md       three external-contribution tracks
-GOVERNANCE.md                    review and release authority
-test/                            deterministic and adversarial suites
+bin/clinical-evidence-check.mjs     file-based validation CLI
+src/journal.ts                      curated-source normalization and matching
+src/text.ts                         exact-quote and claim comparison helpers
+src/language.ts                     certainty policies and language screening
+src/evidence.ts                     evidence-card validation
+src/rate-limit.ts                   process-local and atomic Redis token buckets
+src/trace.ts                        W3C trace context validation and propagation
+src/telemetry.ts                    dependency-free OpenTelemetry interfaces
+src/gateway.ts                      multi-tenant Fetch API gateway
+src/index.ts                        public package exports
+scripts/smoke-package.mjs           packed-package API and CLI validation
+scripts/load-gateway.mjs            multi-tenant isolation load harness
+scripts/fault-gateway.mjs           deterministic fail-closed fault matrix
+scripts/review-dependency-changes.mjs lockfile and supply-chain policy gate
+docs/GATEWAY.md                     architecture and threat boundaries
+docs/OPERATIONS.md                  operations, artifacts, and incident sequence
+docs/CONTRIBUTOR_SPRINT.md          three external-contribution tracks
+GOVERNANCE.md                       review and release authority
+test/                               deterministic and adversarial suites
+.github/workflows/                  CI, CodeQL, dependency review, Scorecard, release
 ```
 
 ## Contributing
