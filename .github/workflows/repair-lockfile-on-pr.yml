@@ -1,0 +1,49 @@
+name: Repair npm lockfile on PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - '.github/workflows/repair-lockfile-on-pr.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clinical-evidence-pr-lockfile-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-lockfile:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate and verify lockfile
+        run: |
+          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
+          git diff --check
+
+      - name: Commit generated lockfile
+        shell: bash
+        run: |
+          changed="$(git status --short)"
+          test "$changed" = '?? package-lock.json'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          git commit -m 'Add reproducible npm lockfile'
+          git push origin HEAD:${{ github.head_ref }}
