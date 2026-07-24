@@ -20,9 +20,24 @@ The project follows semantic versioning.
 - OpenTelemetry-compatible tracer and metrics adapter interfaces
 - deterministic gateway errors, request-size limits, upstream timeouts, and rate-limit metadata
 - adversarial tests for tenant isolation, header spoofing, dependency outages, Redis responses, trace context, timeouts, and telemetry closure
+- 480-request, twelve-tenant isolation load harness
+- executable fail-closed gateway fault matrix
+- runnable Node HTTP-to-Fetch reference gateway
+- production-shaped gateway service with validated tenant configuration
+- separate liveness and readiness endpoints
+- visible drain behavior and bounded graceful shutdown
+- non-root multi-stage container image with liveness health check
+- machine-readable OpenAPI 3.1 gateway contract
+- OpenAPI drift tests for authentication, errors, and correlation headers
+- container build and runtime smoke test in CI
+- CycloneDX software bill of materials retained with CI evidence
 - clean packed-package consumer smoke test using the public package name
+- zero-dependency `clinical-evidence-check` command-line interface
+- installed-binary consumer validation through `node_modules/.bin`
 - copyable evidence-validation and Fetch gateway integration examples
 - contributor-ready issue and pull request templates
+- three-track external contributor sprint and first-time contributor onboarding
+- provenance-enabled tagged npm release workflow
 - CodeQL and dependency maintenance automation
 
 ### Changed
@@ -30,11 +45,15 @@ The project follows semantic versioning.
 - custom source-boundary regexes are reset before and after validation so global and sticky patterns remain repeatable
 - package positioning now includes bounded evidence-service infrastructure in addition to evidence-artifact validation
 - contributor validation now checks the installable tarball as well as repository tests
+- the complete operational gate now exercises load, faults, reference service, production-shaped service, and OpenAPI contracts
+- CI now retains coverage, audits, operational reports, container metadata, and an SBOM
 
 ### Safety boundary
 
 - certainty policies are intentionally incomplete deterministic screens and do not replace clinical, editorial, or domain review
 - the gateway does not provide secret management, user authorization, PHI redaction, network isolation, or autonomous clinical validation
+- the reference service uses process-local rate limiting unless a deployment composes a shared store
+- health and readiness checks establish process and traffic state, not clinical validity or production SLO compliance
 - examples and consumer fixtures use synthetic content and do not establish clinical sufficiency
 
 ## [0.1.0] - 2026-07-23
