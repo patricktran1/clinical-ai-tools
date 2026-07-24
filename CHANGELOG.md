@@ -38,6 +38,12 @@ The project follows semantic versioning.
 - contributor-ready issue and pull request templates
 - three-track external contributor sprint and first-time contributor onboarding
 - provenance-enabled tagged npm release workflow
+- reproducible npm lockfile generated and verified on Node 22
+- enforceable source coverage floors for lines, functions, and branches
+- official pull-request dependency review with a deterministic lockfile-policy fallback
+- moderate-or-higher dependency audit policy for pull-request changes
+- registry, SHA-512 integrity, and license allowlist checks for new or changed packages
+- OpenSSF Scorecard analysis with OIDC publication, retained SARIF, and code-scanning upload
 - CodeQL and dependency maintenance automation
 
 ### Changed
@@ -46,7 +52,8 @@ The project follows semantic versioning.
 - package positioning now includes bounded evidence-service infrastructure in addition to evidence-artifact validation
 - contributor validation now checks the installable tarball as well as repository tests
 - the complete operational gate now exercises load, faults, reference service, production-shaped service, and OpenAPI contracts
-- CI now retains coverage, audits, operational reports, container metadata, and an SBOM
+- CI now uses `npm ci` and retains coverage, audits, operational reports, container metadata, and an SBOM
+- dependency review retains both GitHub API output and deterministic fallback evidence as workflow artifacts
 
 ### Safety boundary
 
@@ -54,6 +61,7 @@ The project follows semantic versioning.
 - the gateway does not provide secret management, user authorization, PHI redaction, network isolation, or autonomous clinical validation
 - the reference service uses process-local rate limiting unless a deployment composes a shared store
 - health and readiness checks establish process and traffic state, not clinical validity or production SLO compliance
+- coverage and supply-chain policy improve regression visibility but do not prove complete correctness or eliminate dependency risk
 - examples and consumer fixtures use synthetic content and do not establish clinical sufficiency
 
 ## [0.1.0] - 2026-07-23
