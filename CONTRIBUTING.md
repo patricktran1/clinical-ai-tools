@@ -4,6 +4,8 @@ Thank you for helping improve Clinical Evidence Guardrails.
 
 This project favors small, reviewable changes with explicit safety boundaries. A contribution should make deterministic clinical-evidence workflows easier to inspect, test, deploy, or adopt without implying that software validation replaces clinician judgment.
 
+See [`GOVERNANCE.md`](GOVERNANCE.md) for decision authority and [`docs/CONTRIBUTOR_SPRINT.md`](docs/CONTRIBUTOR_SPRINT.md) for the three external-contribution tracks.
+
 ## Start here
 
 1. Choose an open issue, preferably one labeled `good first issue` or `help wanted`.
@@ -24,13 +26,18 @@ npm run validate
 npm run test:coverage
 ```
 
-`npm run validate` now includes a clean package-consumer smoke test. It builds and packs the tarball, installs it into a temporary project, and imports through the public package name. This catches missing declarations, incorrect exports, and files that work only through repository-relative paths.
+`npm run validate` includes regression tests, a clean package-consumer smoke test, and the operational gateway checks. It builds and packs the tarball, installs it into a temporary project, imports through the public package name, runs the multi-tenant isolation harness, and executes the fail-closed fault matrix.
 
-Run the package test independently with:
+Run individual gates with:
 
 ```bash
 npm run test:package
+npm run test:load
+npm run test:fault
+npm run test:operations
 ```
+
+Operational expectations and failure contracts are documented in [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 ## Contribution paths
 
@@ -40,7 +47,7 @@ Good changes include source normalization, exact quote handling, claim mapping, 
 
 ### Gateway infrastructure
 
-Good changes include Redis adapter examples, trace propagation fixtures, deterministic error behavior, load-test scaffolding, fault injection, and framework integrations that preserve tenant and credential boundaries.
+Good changes include Redis adapter examples, trace propagation fixtures, deterministic error behavior, load-test reporting, fault injection, and framework integrations that preserve tenant and credential boundaries.
 
 ### Examples and adoption
 
@@ -96,6 +103,7 @@ Documentation and examples must not present the library as a medical device, dia
 - [ ] Tests cover success and failure modes.
 - [ ] `npm run validate` passes.
 - [ ] Public exports and packed-package behavior remain correct.
+- [ ] Operational or failure-contract changes include the relevant load or fault evidence.
 - [ ] Safety, tenant, and source-boundary implications are explained.
 - [ ] No credentials, patient data, or proprietary source text are included.
 
