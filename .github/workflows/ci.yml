@@ -8,10 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: clinical-evidence-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 18
 
     steps:
       - name: Check out repository
@@ -26,6 +30,29 @@ jobs:
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
+      - name: Capture high-severity dependency audit
+        id: audit
+        shell: bash
+        run: |
+          set +e
+          npm audit --audit-level=high --json > npm-audit.json
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinical-evidence-npm-audit
+          path: npm-audit.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce dependency audit
+        if: steps.audit.outputs.exit_code != '0'
+        run: exit 1
 
       - name: TypeScript validation
         run: npm run check
@@ -42,9 +69,26 @@ jobs:
       - name: Clean consumer package smoke test
         run: node scripts/smoke-package.mjs
 
-      - name: Upload coverage summary
+      - name: Multi-tenant isolation load harness
+        shell: bash
+        run: |
+          mkdir -p operations
+          set -o pipefail
+          node scripts/load-gateway.mjs | tee operations/gateway-load.json
+
+      - name: Fail-closed gateway fault matrix
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/fault-gateway.mjs | tee operations/gateway-fault-matrix.json
+
+      - name: Upload validation evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clinical-evidence-guardrails-coverage
-          path: coverage.txt
+          name: clinical-evidence-validation-evidence
+          path: |
+            coverage.txt
+            operations
+          if-no-files-found: error
           retention-days: 14
