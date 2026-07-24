@@ -13,6 +13,7 @@ Clinical Evidence Guardrails is a dependency-free library for teams building evi
 - claim-to-evidence mapping
 - configurable unsupported-certainty policies
 - source-boundary disclosure checks
+- a zero-dependency CLI for CI and file-based validation
 - multi-tenant API isolation and token-bucket rate limiting
 - atomic Redis throttling
 - W3C trace propagation and OpenTelemetry-compatible observability
@@ -81,6 +82,55 @@ if (!result.passed) {
   console.error(result.issues);
   console.error(result.unsafeMatches);
 }
+```
+
+## Evidence validation CLI
+
+The installed package exposes `clinical-evidence-check`, a zero-runtime-dependency command for validating a card JSON file against source text in CI or local workflows.
+
+`card.json`:
+
+```json
+{
+  "correctAnswer": "The synthetic endpoint was reported in the abstract.",
+  "limitations": "Only the abstract was processed; full-text review remains required.",
+  "assertedText": [
+    "The result may inform review of the synthetic population."
+  ],
+  "evidenceMap": [
+    {
+      "claim": "The synthetic endpoint was reported in the abstract.",
+      "sourceQuote": "The synthetic endpoint was reported in the abstract.",
+      "supportType": "direct"
+    }
+  ]
+}
+```
+
+Run:
+
+```bash
+clinical-evidence-check \
+  --card card.json \
+  --source abstract.txt \
+  --policy literature-review \
+  --pretty
+```
+
+Exit codes are designed for automation:
+
+| Exit | Meaning |
+|---:|---|
+| `0` | deterministic guardrails passed |
+| `1` | deterministic guardrails rejected the card |
+| `2` | usage, file, JSON, or input-shape error |
+
+The JSON output includes the selected policy, individual check states, stable issue codes, and unsafe-language matches. It does not echo source text or card content. Passing still does not establish clinical sufficiency or publication authorization.
+
+Repository development can invoke the same command with:
+
+```bash
+npm run cli -- --card card.json --source abstract.txt --pretty
 ```
 
 ## Evidence API
@@ -195,7 +245,7 @@ CI retains the load report, fault report, dependency audit, and coverage output 
 
 ## Package and release integrity
 
-The package smoke test builds and packs the tarball, installs it in a clean temporary consumer project, and imports only through the public package name.
+The package smoke test builds and packs the tarball, installs it in a clean temporary consumer project, imports through the public package name, and executes the installed `clinical-evidence-check` binary against a grounded fixture.
 
 ```bash
 npm run test:package
@@ -222,6 +272,7 @@ npm install
 npm run check
 npm test
 npm run test:coverage
+npm run test:cli
 npm run test:package
 npm run test:operations
 npm run validate
@@ -230,23 +281,24 @@ npm run validate
 ## Repository map
 
 ```text
-src/journal.ts                  curated-source normalization and matching
-src/text.ts                     exact-quote and claim comparison helpers
-src/language.ts                 certainty policies and language screening
-src/evidence.ts                 evidence-card validation
-src/rate-limit.ts               process-local and atomic Redis token buckets
-src/trace.ts                    W3C trace context validation and propagation
-src/telemetry.ts                dependency-free OpenTelemetry interfaces
-src/gateway.ts                  multi-tenant Fetch API gateway
-src/index.ts                    public package exports
-scripts/smoke-package.mjs       packed-package consumer validation
-scripts/load-gateway.mjs        multi-tenant isolation load harness
-scripts/fault-gateway.mjs       deterministic fail-closed fault matrix
-docs/GATEWAY.md                 architecture and threat boundaries
-docs/OPERATIONS.md              operations, artifacts, and incident sequence
-docs/CONTRIBUTOR_SPRINT.md      three external-contribution tracks
-GOVERNANCE.md                   review and release authority
-test/                           deterministic and adversarial suites
+bin/clinical-evidence-check.mjs  file-based validation CLI
+src/journal.ts                   curated-source normalization and matching
+src/text.ts                      exact-quote and claim comparison helpers
+src/language.ts                  certainty policies and language screening
+src/evidence.ts                  evidence-card validation
+src/rate-limit.ts                process-local and atomic Redis token buckets
+src/trace.ts                     W3C trace context validation and propagation
+src/telemetry.ts                 dependency-free OpenTelemetry interfaces
+src/gateway.ts                   multi-tenant Fetch API gateway
+src/index.ts                     public package exports
+scripts/smoke-package.mjs        packed-package API and CLI validation
+scripts/load-gateway.mjs         multi-tenant isolation load harness
+scripts/fault-gateway.mjs        deterministic fail-closed fault matrix
+docs/GATEWAY.md                  architecture and threat boundaries
+docs/OPERATIONS.md               operations, artifacts, and incident sequence
+docs/CONTRIBUTOR_SPRINT.md       three external-contribution tracks
+GOVERNANCE.md                    review and release authority
+test/                            deterministic and adversarial suites
 ```
 
 ## Contributing

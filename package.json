@@ -24,10 +24,14 @@
     "typescript"
   ],
   "files": [
+    "bin",
     "dist",
     "README.md",
     "LICENSE"
   ],
+  "bin": {
+    "clinical-evidence-check": "bin/clinical-evidence-check.mjs"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -41,12 +45,14 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --experimental-strip-types --test test/*.test.ts",
     "test:coverage": "npm run build && node --experimental-strip-types --experimental-test-coverage --test test/*.test.ts",
+    "test:cli": "npm run build && node --experimental-strip-types --test test/cli.test.ts",
     "test:package": "npm run build && node scripts/smoke-package.mjs",
     "test:load": "npm run build && node scripts/load-gateway.mjs",
     "test:fault": "npm run build && node scripts/fault-gateway.mjs",
     "test:service": "npm run build && node examples/node-gateway.mjs --self-test",
     "test:operations": "npm run build && node scripts/load-gateway.mjs && node scripts/fault-gateway.mjs && node examples/node-gateway.mjs --self-test",
     "example:gateway": "npm run build && node examples/node-gateway.mjs",
+    "cli": "npm run build && node bin/clinical-evidence-check.mjs",
     "validate": "npm run check && npm test && npm run test:package && npm run test:operations",
     "prepublishOnly": "npm run validate"
   },

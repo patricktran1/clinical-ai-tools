@@ -43,6 +43,7 @@ try {
   }
 
   for (const requiredPath of [
+    "bin/clinical-evidence-check.mjs",
     "dist/index.js",
     "dist/index.d.ts",
     "README.md",
@@ -116,7 +117,7 @@ const response = await gateway(new Request("https://gateway.example/cards", {
 }));
 assert.equal(response.status, 200);
 assert.deepEqual(await response.json(), { ok: true });
-console.log("Packed package consumer smoke test passed.");
+console.log("Packed package API consumer smoke test passed.");
 `,
     "utf8",
   );
@@ -128,23 +129,55 @@ console.log("Packed package consumer smoke test passed.");
   );
   await run(process.execPath, ["smoke.mjs"], consumer);
 
+  const installedPackagePath = path.join(
+    consumer,
+    "node_modules",
+    "@patricktran1",
+    "clinical-evidence-guardrails",
+  );
   const installedPackage = JSON.parse(
-    await readFile(
-      path.join(
-        consumer,
-        "node_modules",
-        "@patricktran1",
-        "clinical-evidence-guardrails",
-        "package.json",
-      ),
-      "utf8",
-    ),
+    await readFile(path.join(installedPackagePath, "package.json"), "utf8"),
   );
   if (installedPackage.name !== "@patricktran1/clinical-evidence-guardrails") {
     throw new Error("The installed package identity did not match the public package name.");
   }
+  if (installedPackage.bin?.["clinical-evidence-check"] !== "bin/clinical-evidence-check.mjs") {
+    throw new Error("The installed package did not expose clinical-evidence-check.");
+  }
 
-  console.log(`Verified packed artifact ${filename} in a clean consumer project.`);
+  const sourceQuote = "The synthetic endpoint was reported in the abstract.";
+  const cardPath = path.join(consumer, "card.json");
+  const sourcePath = path.join(consumer, "source.txt");
+  await Promise.all([
+    writeFile(cardPath, JSON.stringify({
+      correctAnswer: sourceQuote,
+      limitations: "Only the abstract was processed; full-text review remains required.",
+      evidenceMap: [{
+        claim: sourceQuote,
+        sourceQuote,
+        supportType: "direct",
+      }],
+    }), "utf8"),
+    writeFile(sourcePath, sourceQuote, "utf8"),
+  ]);
+
+  const installedCli = path.join(
+    consumer,
+    "node_modules",
+    ".bin",
+    "clinical-evidence-check",
+  );
+  const cliResult = await run(
+    process.execPath,
+    [installedCli, "--card", cardPath, "--source", sourcePath, "--pretty"],
+    consumer,
+  );
+  const cliOutput = JSON.parse(cliResult.stdout);
+  if (cliOutput.passed !== true || cliOutput.tool !== "clinical-evidence-check") {
+    throw new Error("The installed CLI did not validate the grounded consumer fixture.");
+  }
+
+  console.log(`Verified packed artifact ${filename}, public API imports, and installed CLI in a clean consumer project.`);
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }
