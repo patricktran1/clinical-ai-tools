@@ -15,7 +15,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -82,11 +82,74 @@ jobs:
           set -o pipefail
           node scripts/fault-gateway.mjs | tee operations/gateway-fault-matrix.json
 
-      - name: Runnable Node gateway service
+      - name: Runnable Node gateway reference
         shell: bash
         run: |
           set -o pipefail
-          node examples/node-gateway.mjs --self-test | tee operations/node-gateway-service.json
+          node examples/node-gateway.mjs --self-test | tee operations/node-gateway-reference.json
+
+      - name: Production-shaped service lifecycle
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/test-gateway-service.mjs | tee operations/gateway-service-lifecycle.json
+
+      - name: OpenAPI contract
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/test-openapi-contract.mjs | tee operations/gateway-openapi-contract.json
+
+      - name: Generate CycloneDX SBOM
+        run: npm sbom --sbom-format cyclonedx > operations/sbom.cdx.json
+
+      - name: Build and smoke-test non-root container
+        shell: bash
+        run: |
+          set -euo pipefail
+          image=clinical-evidence-gateway:ci
+          docker build --tag "$image" .
+          docker image inspect "$image" > operations/container-image.json
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const image = JSON.parse(readFileSync('operations/container-image.json', 'utf8'))[0];
+          if (image?.Config?.User !== 'node') {
+            throw new Error(`Container must run as node, received ${image?.Config?.User ?? 'empty user'}`);
+          }
+          NODE
+
+          tenant_json='{"ci-key":{"id":"ci-tenant","upstreamBaseUrl":"https://example.invalid","rateLimit":{"capacity":2,"refillTokens":2,"refillIntervalMs":60000}}}'
+          container_id=$(docker run -d --rm \
+            -p 127.0.0.1:4015:4000 \
+            -e "TENANT_DIRECTORY_JSON=${tenant_json}" \
+            "$image")
+          trap 'docker stop "$container_id" >/dev/null 2>&1 || true' EXIT
+
+          node --input-type=module <<'NODE'
+          const base = 'http://127.0.0.1:4015';
+          let health;
+          for (let attempt = 0; attempt < 30; attempt += 1) {
+            try {
+              health = await fetch(`${base}/healthz`);
+              if (health.ok) break;
+            } catch {}
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+          if (!health?.ok) throw new Error('Container health endpoint did not become ready.');
+          const ready = await fetch(`${base}/readyz`);
+          if (ready.status !== 200) throw new Error(`Expected readiness 200, received ${ready.status}.`);
+          const unauthorized = await fetch(`${base}/cards`);
+          if (unauthorized.status !== 401) {
+            throw new Error(`Expected unauthenticated request to fail with 401, received ${unauthorized.status}.`);
+          }
+          console.log(JSON.stringify({
+            scenario: 'container-smoke',
+            nonRootUser: 'node',
+            health: health.status,
+            readiness: ready.status,
+            unauthenticatedTraffic: unauthorized.status,
+          }, null, 2));
+          NODE
 
       - name: Upload validation evidence
         if: always()
